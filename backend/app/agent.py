@@ -426,7 +426,7 @@ def invoke_with_backoff(model_or_runnable, messages, max_retries=2, initial_dela
                     )
                     
                     if is_binding:
-                        new_runnable = new_model.bind_tools(model_or_runnable.kwargs.get("tools", []))
+                        new_runnable = new_model.bind_tools(tools)
                     else:
                         new_runnable = new_model
                         

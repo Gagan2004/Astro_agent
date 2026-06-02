@@ -86,7 +86,7 @@ function App() {
 
     // Trigger an initial reading request from the agent
     const introPrompt = `My birth details are: Name: ${details.name}, Born: ${details.date} at ${details.time} in ${details.place} (Lat: ${details.latitude.toFixed(4)}, Lng: ${details.longitude.toFixed(4)}, Timezone: ${details.timezone}). Please calculate my birth chart using ${details.sidereal ? 'Vedic Sidereal' : 'Western Tropical'} coordinates, show me the placements, and provide a warm welcoming reading.`;
-    
+
     // We send this system-aligned prompt behind the scenes to trigger the chart calculation, 
     // but show a cleaner, warmer user message in the UI:
     const userDisplayMsg: Message = {
@@ -96,7 +96,7 @@ function App() {
 
     const newMessages = [...messages, userDisplayMsg];
     saveMessages(newMessages);
-    
+
     await executeChatStream(newMessages, introPrompt, details);
   };
 
@@ -115,7 +115,7 @@ function App() {
     setIsStreaming(true);
     setStreamingMessage('');
     setActiveTool(null);
-    
+
     let accumulatedText = '';
 
     try {
@@ -128,7 +128,7 @@ function App() {
         return { role: msg.role, content: msg.content };
       });
 
-      const response = await fetch(`${API_BASE_URL}/api/chat`, {
+      const response = await fetch(`${API_BASE_URL}api/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -416,7 +416,7 @@ function App() {
 
       {/* Dynamic Settings Modal overlay */}
       {showSettings && (
-        <div 
+        <div
           style={{
             position: 'fixed',
             top: 0,
@@ -432,8 +432,8 @@ function App() {
             animation: 'fadeIn 0.25s ease-out',
           }}
         >
-          <div 
-            className="glass-panel" 
+          <div
+            className="glass-panel"
             style={{
               padding: '2.5rem',
               maxWidth: '500px',
@@ -447,7 +447,7 @@ function App() {
               position: 'relative'
             }}
           >
-            <button 
+            <button
               onClick={() => { setShowSettings(false); setSettingsError(null); }}
               style={{
                 position: 'absolute',
@@ -464,22 +464,22 @@ function App() {
             >
               ×
             </button>
-            
+
             <h3 className="gold-glow" style={{ color: 'var(--color-gold)', fontSize: '1.6rem', textAlign: 'center', margin: 0 }}>
               ⚙️ Celestial Settings
             </h3>
-            
+
             {settingsError && (
               <div style={{ color: '#ff6b6b', fontSize: '0.85rem', background: 'rgba(255, 107, 107, 0.12)', padding: '0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid rgba(255, 107, 107, 0.25)', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                <span>⚠️</span> 
+                <span>⚠️</span>
                 <span>{settingsError}</span>
               </div>
             )}
-            
+
             <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', margin: 0, textAlign: 'center' }}>
               Configure your preferred language model provider and custom API keys.
             </p>
-            
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                 <label style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>LLM Provider</label>
@@ -503,7 +503,7 @@ function App() {
                   <option value="ollama">Ollama (Local)</option>
                 </select>
               </div>
-              
+
               {llmProvider !== 'ollama' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                   <label style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>
@@ -512,9 +512,9 @@ function App() {
                   <input
                     type="password"
                     placeholder={
-                      llmProvider === 'gemini' ? 'AIzaSy...' : 
-                      llmProvider === 'openai' ? 'sk-proj-...' : 
-                      'Enter API key...'
+                      llmProvider === 'gemini' ? 'AIzaSy...' :
+                        llmProvider === 'openai' ? 'sk-proj-...' :
+                          'Enter API key...'
                     }
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
@@ -533,7 +533,7 @@ function App() {
                   </p>
                 </div>
               )}
-              
+
               {llmProvider === 'ollama' && (
                 <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '0.8rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-card-border)' }}>
                   <p style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem', margin: 0 }}>
@@ -541,7 +541,7 @@ function App() {
                   </p>
                 </div>
               )}
-              
+
               <button
                 onClick={() => handleSaveSettings(llmProvider, apiKey)}
                 style={{

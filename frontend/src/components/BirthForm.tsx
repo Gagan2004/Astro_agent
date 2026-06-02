@@ -29,14 +29,14 @@ export const BirthForm: React.FC<BirthFormProps> = ({ onSave, initialDetails }) 
   const [geocoded, setGeocoded] = useState<any>(
     initialDetails
       ? {
-          lat: initialDetails.latitude,
-          lng: initialDetails.longitude,
-          timezone: initialDetails.timezone,
-          display_name: initialDetails.display_name,
-        }
+        lat: initialDetails.latitude,
+        lng: initialDetails.longitude,
+        timezone: initialDetails.timezone,
+        display_name: initialDetails.display_name,
+      }
       : null
   );
-  
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [suggestions, setSuggestions] = useState<any[]>([]);
@@ -55,18 +55,18 @@ export const BirthForm: React.FC<BirthFormProps> = ({ onSave, initialDetails }) 
 
     try {
       // Call backend geocoder
-      const response = await fetch(`${API_BASE_URL}/api/geocode?place_name=${encodeURIComponent(place)}`);
+      const response = await fetch(`${API_BASE_URL}api/geocode?place_name=${encodeURIComponent(place)}`);
       if (!response.ok) {
         throw new Error('Location could not be found. Please try a major nearby city.');
       }
       const data = await response.json();
-      
+
       if (data.results && data.results.length > 1) {
         setSuggestions(data.results);
       } else {
         setSuggestions([]);
       }
-      
+
       setGeocoded(data);
       // Automatically prefill place with display_name
       setPlace(data.display_name);
@@ -123,7 +123,7 @@ export const BirthForm: React.FC<BirthFormProps> = ({ onSave, initialDetails }) 
       <h3 className="gold-glow" style={{ color: 'var(--color-gold)', marginBottom: '1.5rem', textAlign: 'center', fontSize: '1.5rem' }}>
         Create Natal Chart
       </h3>
-      
+
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
           <label style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>First Name / Identifier</label>
@@ -228,13 +228,13 @@ export const BirthForm: React.FC<BirthFormProps> = ({ onSave, initialDetails }) 
               ✓ Lat: {geocoded.lat.toFixed(4)}, Lng: {geocoded.lng.toFixed(4)} | Timezone: {geocoded.timezone}
             </div>
           )}
-          
+
           {suggestions.length > 1 && (
-            <div 
-              style={{ 
-                marginTop: '0.75rem', 
-                background: 'rgba(5, 6, 20, 0.85)', 
-                border: '1px solid var(--color-card-border)', 
+            <div
+              style={{
+                marginTop: '0.75rem',
+                background: 'rgba(5, 6, 20, 0.85)',
+                border: '1px solid var(--color-card-border)',
                 borderRadius: 'var(--radius-md)',
                 padding: '0.6rem',
                 maxHeight: '160px',
@@ -280,7 +280,7 @@ export const BirthForm: React.FC<BirthFormProps> = ({ onSave, initialDetails }) 
                       if (!isSelected) e.currentTarget.style.background = 'transparent';
                     }}
                   >
-                    <span>📍</span> 
+                    <span>📍</span>
                     <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                       {item.display_name} (Lat: {item.lat.toFixed(2)}, Lng: {item.lng.toFixed(2)})
                     </span>
