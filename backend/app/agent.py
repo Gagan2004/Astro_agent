@@ -11,6 +11,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_community.chat_models import ChatOllama
 from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode
+from langchain_core.runnables import RunnableConfig
 
 from . import config
 from .tools.geocoder import geocode_place
@@ -202,11 +203,39 @@ def _get_api_key_str(key_obj) -> str:
         return key_obj.get_secret_value()
     return str(key_obj)
 
-def get_llm() -> BaseChatModel:
+def get_llm(runnable_config: Optional[RunnableConfig] = None) -> BaseChatModel:
     global _llm_instance
-    provider = config.LLM_PROVIDER
+    
+    # Extract configurable settings
+    configurable = {}
+    if runnable_config:
+        if hasattr(runnable_config, "configurable"):
+            configurable = runnable_config.configurable
+        elif isinstance(runnable_config, dict) and "configurable" in runnable_config:
+            configurable = runnable_config["configurable"]
+            
+    provider = (configurable.get("llm_provider") or config.LLM_PROVIDER).lower()
+    custom_api_key = configurable.get("api_key")
     
     if provider == "gemini":
+        if custom_api_key:
+            # Create a dedicated rate-limited instance for this custom key
+            from langchain_core.rate_limiters import InMemoryRateLimiter
+            from langchain_google_genai import ChatGoogleGenerativeAI
+            
+            rate_limiter = InMemoryRateLimiter(
+                requests_per_second=0.07,
+                check_every_n_seconds=0.5,
+                max_bucket_size=1
+            )
+            return ChatGoogleGenerativeAI(
+                model=config.GEMINI_MODEL,
+                google_api_key=custom_api_key,
+                temperature=0.2,
+                rate_limiter=rate_limiter,
+                max_retries=1
+            )
+            
         global _gemini_instances, _gemini_index
         with _gemini_lock:
             api_keys = getattr(config, "GEMINI_API_KEYS", {})
@@ -267,6 +296,27 @@ def get_llm() -> BaseChatModel:
             logger.info(f"Using Gemini API key index {_gemini_index + 1} (Key ID: {key_id}) for request")
             _gemini_index = (_gemini_index + 1) % len(non_exhausted_instances)
             return instance
+            
+    # If custom key/provider is used, don't use shared global _llm_instance
+    if custom_api_key:
+        if provider == "openai":
+            return ChatOpenAI(
+                model=config.OPENAI_MODEL,
+                openai_api_key=custom_api_key,
+                temperature=0.2
+            )
+        elif provider == "openrouter":
+            return ChatOpenAI(
+                base_url=config.OPENROUTER_BASE_URL,
+                openai_api_key=custom_api_key,
+                model=config.OPENROUTER_MODEL,
+                temperature=0.2,
+                max_tokens=config.OPENROUTER_MAX_TOKENS,
+                default_headers={
+                    "HTTP-Referer": "https://github.com/astro-agent",
+                    "X-Title": "AstroAgent - Aradhana Spiritual Companion",
+                }
+            )
             
     if _llm_instance is not None:
         return _llm_instance
@@ -344,6 +394,12 @@ def invoke_with_backoff(model_or_runnable, messages, max_retries=2, initial_dela
                     if failed_key_str not in _exhausted_keys:
                         logger.warning(f"Gemini API key ending in ...{failed_key_str[-6:]} exhausted its daily quota. Marking as dead.")
                         _exhausted_keys.add(failed_key_str)
+                    
+                    # If this is a custom user key, raise error immediately so backend returns quota error
+                    api_keys = getattr(config, "GEMINI_API_KEYS", {})
+                    if failed_key_str not in api_keys.values() and failed_key_str != config.GEMINI_API_KEY:
+                        logger.warning("Custom user Gemini key exhausted. Raising error to prompt user.")
+                        raise e
                 
                 # Fetch config keys and filter out dead ones
                 api_keys = getattr(config, "GEMINI_API_KEYS", {})
@@ -431,7 +487,7 @@ def extract_json_blocks(text: str):
             idx = start_idx + 1
 
 # Define Graph Nodes
-def intent_classifier(state: AgentState) -> Dict[str, Any]:
+def intent_classifier(state: AgentState, config: RunnableConfig) -> Dict[str, Any]:
     """Node that classifies the user's intent and updates current_intent in state."""
     messages = state["messages"]
     user_msg = ""
@@ -452,7 +508,7 @@ def intent_classifier(state: AgentState) -> Dict[str, Any]:
     )
     
     try:
-        llm = get_llm()
+        llm = get_llm(config)
         response = invoke_with_backoff(llm, [
             SystemMessage(content=system_prompt),
             HumanMessage(content=f"Query: {user_msg}")
@@ -468,9 +524,9 @@ def intent_classifier(state: AgentState) -> Dict[str, Any]:
         logger.error(f"Classifier: Error classifying intent: {e}")
         return {"current_intent": "free_form"}
 
-def agent_reasoner(state: AgentState) -> Dict[str, Any]:
+def agent_reasoner(state: AgentState, config: RunnableConfig) -> Dict[str, Any]:
     """Node that decides next action using LLM with tools bound."""
-    llm = get_llm()
+    llm = get_llm(config)
     llm_with_tools = llm.bind_tools(tools)
     
     intent = state.get("current_intent") or "free_form"

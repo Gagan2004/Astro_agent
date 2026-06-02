@@ -31,11 +31,19 @@ function App() {
   const [activeTool, setActiveTool] = useState<{ name: string; label: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Settings states
+  const [llmProvider, setLlmProvider] = useState<string>('gemini');
+  const [apiKey, setApiKey] = useState<string>('');
+  const [showSettings, setShowSettings] = useState<boolean>(false);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
+
   // Load state from localStorage on startup
   useEffect(() => {
     const savedDetails = localStorage.getItem('astro_birth_details');
     const savedChart = localStorage.getItem('astro_chart_data');
     const savedMessages = localStorage.getItem('astro_messages');
+    const savedProvider = localStorage.getItem('astro_llm_provider');
+    const savedApiKey = localStorage.getItem('astro_api_key');
 
     if (savedDetails) {
       setBirthDetails(JSON.parse(savedDetails));
@@ -46,7 +54,22 @@ function App() {
     if (savedMessages) {
       setMessages(JSON.parse(savedMessages));
     }
+    if (savedProvider) {
+      setLlmProvider(savedProvider);
+    }
+    if (savedApiKey) {
+      setApiKey(savedApiKey);
+    }
   }, []);
+
+  const handleSaveSettings = (provider: string, key: string) => {
+    setLlmProvider(provider);
+    setApiKey(key);
+    localStorage.setItem('astro_llm_provider', provider);
+    localStorage.setItem('astro_api_key', key);
+    setShowSettings(false);
+    setSettingsError(null);
+  };
 
   // Save messages to localStorage when updated
   const saveMessages = (updatedMsgs: Message[]) => {
@@ -120,6 +143,8 @@ function App() {
           } : null,
           chart_data: chartData,
           sidereal: currentDetails?.sidereal || false,
+          llm_provider: llmProvider,
+          api_key: apiKey || null,
         }),
       });
 
@@ -160,6 +185,10 @@ function App() {
                 }
               } else if (data.event === 'error') {
                 setError(data.message);
+                if (data.error_type === 'quota_limit') {
+                  setSettingsError(data.message);
+                  setShowSettings(true);
+                }
               }
             } catch (err) {
               console.error('Error parsing SSE event line:', err, line);
@@ -224,17 +253,38 @@ function App() {
           </span>
         </div>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <button
+            onClick={() => setShowSettings(true)}
+            style={{
+              background: 'rgba(212, 175, 55, 0.1)',
+              border: '1px solid var(--color-gold)',
+              color: 'var(--color-gold-light)',
+              padding: '0.4rem 0.8rem',
+              borderRadius: 'var(--radius-md)',
+              cursor: 'pointer',
+              fontSize: '0.85rem',
+              fontWeight: 500,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              transition: 'all 0.2s',
+            }}
+            onMouseOver={(e) => e.currentTarget.style.background = 'rgba(212, 175, 55, 0.25)'}
+            onMouseOut={(e) => e.currentTarget.style.background = 'rgba(212, 175, 55, 0.1)'}
+          >
+            ⚙️ Settings
+          </button>
           <span
             style={{
               fontSize: '0.85rem',
-              color: 'var(--color-gold-light)',
-              border: '1px solid var(--color-gold)',
-              padding: '0.3rem 0.6rem',
-              borderRadius: '20px',
-              background: 'rgba(212, 175, 55, 0.05)',
+              color: 'var(--color-text-muted)',
+              border: '1px solid var(--color-card-border)',
+              padding: '0.4rem 0.8rem',
+              borderRadius: 'var(--radius-md)',
+              background: 'rgba(255, 255, 255, 0.03)',
             }}
           >
-            AstroAgent v1.0
+            Provider: <strong style={{ color: 'var(--color-gold-light)' }}>{llmProvider.toUpperCase()}</strong>
           </span>
         </div>
       </header>
@@ -363,6 +413,165 @@ function App() {
           />
         </section>
       </main>
+
+      {/* Dynamic Settings Modal overlay */}
+      {showSettings && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(5, 6, 20, 0.75)',
+            backdropFilter: 'blur(12px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            animation: 'fadeIn 0.25s ease-out',
+          }}
+        >
+          <div 
+            className="glass-panel" 
+            style={{
+              padding: '2.5rem',
+              maxWidth: '500px',
+              width: '90%',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1.5rem',
+              boxShadow: '0 0 40px rgba(0, 0, 0, 0.8), 0 0 30px rgba(212, 175, 55, 0.15)',
+              border: '1px solid rgba(212, 175, 55, 0.25)',
+              borderRadius: 'var(--radius-lg)',
+              position: 'relative'
+            }}
+          >
+            <button 
+              onClick={() => { setShowSettings(false); setSettingsError(null); }}
+              style={{
+                position: 'absolute',
+                top: '1.25rem',
+                right: '1.25rem',
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--color-text-muted)',
+                fontSize: '1.5rem',
+                cursor: 'pointer',
+                lineHeight: 1,
+                outline: 'none',
+              }}
+            >
+              ×
+            </button>
+            
+            <h3 className="gold-glow" style={{ color: 'var(--color-gold)', fontSize: '1.6rem', textAlign: 'center', margin: 0 }}>
+              ⚙️ Celestial Settings
+            </h3>
+            
+            {settingsError && (
+              <div style={{ color: '#ff6b6b', fontSize: '0.85rem', background: 'rgba(255, 107, 107, 0.12)', padding: '0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid rgba(255, 107, 107, 0.25)', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <span>⚠️</span> 
+                <span>{settingsError}</span>
+              </div>
+            )}
+            
+            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', margin: 0, textAlign: 'center' }}>
+              Configure your preferred language model provider and custom API keys.
+            </p>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <label style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>LLM Provider</label>
+                <select
+                  value={llmProvider}
+                  onChange={(e) => setLlmProvider(e.target.value)}
+                  style={{
+                    padding: '0.75rem',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--color-card-border)',
+                    background: 'rgba(5, 6, 20, 0.85)',
+                    color: 'var(--color-text-main)',
+                    fontSize: '1rem',
+                    outline: 'none',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <option value="gemini">Google Gemini (Recommended)</option>
+                  <option value="openai">OpenAI GPT</option>
+                  <option value="openrouter">OpenRouter API</option>
+                  <option value="ollama">Ollama (Local)</option>
+                </select>
+              </div>
+              
+              {llmProvider !== 'ollama' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                  <label style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>
+                    Custom API Key <span style={{ fontSize: '0.75rem', fontWeight: 'normal' }}>(Optional)</span>
+                  </label>
+                  <input
+                    type="password"
+                    placeholder={
+                      llmProvider === 'gemini' ? 'AIzaSy...' : 
+                      llmProvider === 'openai' ? 'sk-proj-...' : 
+                      'Enter API key...'
+                    }
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    style={{
+                      padding: '0.75rem',
+                      borderRadius: 'var(--radius-md)',
+                      border: '1px solid var(--color-card-border)',
+                      background: 'rgba(5, 6, 20, 0.85)',
+                      color: 'var(--color-text-main)',
+                      fontSize: '1rem',
+                      outline: 'none',
+                    }}
+                  />
+                  <p style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem', margin: '0.1rem 0 0 0' }}>
+                    Leave blank to use the system default backup keys.
+                  </p>
+                </div>
+              )}
+              
+              {llmProvider === 'ollama' && (
+                <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '0.8rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-card-border)' }}>
+                  <p style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem', margin: 0 }}>
+                    ℹ️ Local Ollama requires a running instance on <strong>http://localhost:11434</strong> with the model loaded.
+                  </p>
+                </div>
+              )}
+              
+              <button
+                onClick={() => handleSaveSettings(llmProvider, apiKey)}
+                style={{
+                  padding: '0.9rem',
+                  background: 'var(--color-gold)',
+                  color: 'var(--bg-deep)',
+                  border: 'none',
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  marginTop: '0.5rem',
+                  transition: 'all 0.3s',
+                  boxShadow: '0 0 15px var(--color-gold-glow)',
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.background = 'var(--color-gold-light)';
+                  e.currentTarget.style.boxShadow = '0 0 25px var(--color-gold)';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.background = 'var(--color-gold)';
+                  e.currentTarget.style.boxShadow = '0 0 15px var(--color-gold-glow)';
+                }}
+              >
+                Apply Celestial Configuration
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

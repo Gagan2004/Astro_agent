@@ -35,6 +35,8 @@ class ChatRequest(BaseModel):
     birth_details: Optional[Dict[str, Any]] = None
     chart_data: Optional[Dict[str, Any]] = None
     sidereal: bool = False
+    llm_provider: Optional[str] = None
+    api_key: Optional[str] = None
 
 class GeocodeRequest(BaseModel):
     place_name: str
@@ -86,7 +88,17 @@ async def chat_endpoint(request: ChatRequest):
             logger.info("Starting agent event stream...")
             
             # Using version v2 of astream_events
-            async for event in app_graph.astream_events(initial_state, version="v2", config={"recursion_limit": 8}):
+            async for event in app_graph.astream_events(
+                initial_state, 
+                version="v2", 
+                config={
+                    "recursion_limit": 8,
+                    "configurable": {
+                        "llm_provider": request.llm_provider,
+                        "api_key": request.api_key
+                    }
+                }
+            ):
                 kind = event["event"]
 
                 try:
@@ -152,7 +164,13 @@ async def chat_endpoint(request: ChatRequest):
                         
         except Exception as e:
             logger.error(f"Error in SSE stream generator: {str(e)}")
-            error_payload = {"event": "error", "message": f"An error occurred during celestial alignment: {str(e)}"}
+            err_str = str(e).lower()
+            is_quota = any(w in err_str for w in ["429", "resource_exhausted", "quota", "limit exceeded", "exhausted"])
+            error_payload = {
+                "event": "error", 
+                "error_type": "quota_limit" if is_quota else "general",
+                "message": f"Celestial connection disrupted: {str(e)}"
+            }
             yield f"data: {json.dumps(error_payload)}\n\n"
             
     return StreamingResponse(sse_event_generator(), media_type="text/event-stream")
