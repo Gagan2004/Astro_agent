@@ -6,9 +6,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from backend.app.agent import app_graph
-from backend.app import config
-from backend.app.tools.geocoder import geocode_place
+from .agent import app_graph
+from . import config
+from .tools.geocoder import geocode_place
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -161,4 +161,8 @@ async def chat_endpoint(request: ChatRequest):
 if __name__ == "__main__":
     import uvicorn
     logger.info(f"Starting AstroAgent API server on {config.HOST}:{config.PORT}")
-    uvicorn.run("backend.app.main:app", host=config.HOST, port=config.PORT, reload=True)
+    try:
+        import backend
+        uvicorn.run("backend.app.main:app", host=config.HOST, port=config.PORT, reload=True)
+    except ImportError:
+        uvicorn.run("app.main:app", host=config.HOST, port=config.PORT, reload=True)

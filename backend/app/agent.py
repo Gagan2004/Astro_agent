@@ -12,10 +12,10 @@ from langchain_community.chat_models import ChatOllama
 from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode
 
-from backend.app import config
-from backend.app.tools.geocoder import geocode_place
-from backend.app.tools.astrology import compute_birth_chart, get_daily_transits, _normalize_date, _normalize_time
-from backend.app.tools.rag import knowledge_lookup
+from . import config
+from .tools.geocoder import geocode_place
+from .tools.astrology import compute_birth_chart, get_daily_transits, _normalize_date, _normalize_time
+from .tools.rag import knowledge_lookup
 
 logger = logging.getLogger(__name__)
 
