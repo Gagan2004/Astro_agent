@@ -51,7 +51,7 @@ const polarToCartesian = (centerX: number, centerY: number, radius: number, angl
 };
 
 export const PlanetPositions: React.FC<PlanetPositionsProps> = ({ chartData, sidereal }) => {
-  const { ascendant, mc, planets } = chartData;
+  const { ascendant, planets } = chartData;
   const [viewMode, setViewMode] = useState<'visual' | 'list'>('visual');
 
   const ascLongitude = ascendant.raw_longitude ?? 0;
@@ -61,7 +61,7 @@ export const PlanetPositions: React.FC<PlanetPositionsProps> = ({ chartData, sid
   ];
 
   // Helper to safely get raw longitude if missing
-  const getRawLongitude = (name: string, info: PlanetInfo): number => {
+  const getRawLongitude = (_name: string, info: PlanetInfo): number => {
     if (info.raw_longitude !== undefined) return info.raw_longitude;
     const idx = signsList.indexOf(info.sign_name);
     return (idx >= 0 ? idx * 30 : 0) + info.degrees + info.minutes / 60.0;
@@ -148,7 +148,6 @@ export const PlanetPositions: React.FC<PlanetPositionsProps> = ({ chartData, sid
         {signsList.map((sign, i) => {
           const startAngle = 180 + (i * 30 - ascLongitude);
           const midAngle = startAngle + 15;
-          const endAngle = startAngle + 30;
           const signInfo = getSignColor(sign);
 
           // Divider lines
@@ -288,8 +287,6 @@ export const PlanetPositions: React.FC<PlanetPositionsProps> = ({ chartData, sid
 
   // Render 2: Vedic North Indian Diamond Style Chart (Kundali)
   const renderVedicChart = () => {
-    const size = 320;
-    const center = size / 2;
     const ascSignIndex = signsList.indexOf(ascendant.sign_name);
     
     // Group planets by their house numbers (1 to 12)
