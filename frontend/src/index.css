@@ -106,3 +106,19 @@ h1, h2, h3, h4 {
 .float-animation {
   animation: float 4s infinite ease-in-out;
 }
+
+/* Highlight calendar and clock icons inside date/time inputs */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.85) sepia(1) saturate(5) hue-rotate(15deg); /* turns icons gold */
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 2px;
+  transition: all 0.2s ease-in-out;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover,
+input[type="time"]::-webkit-calendar-picker-indicator:hover {
+  transform: scale(1.15);
+  filter: invert(1) sepia(1) saturate(8) hue-rotate(15deg); /* brighter gold on hover */
+}
